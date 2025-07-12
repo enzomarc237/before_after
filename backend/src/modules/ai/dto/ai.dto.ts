@@ -16,6 +16,10 @@ export class AnalyzeImagesDto {
   @IsOptional()
   @IsString()
   aiModel?: string;
+
+  @IsOptional()
+  @IsString()
+  apiKey?: string;
 }
 
 export class DetectStackDto {

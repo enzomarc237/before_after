@@ -45,3 +45,22 @@ export class Project {
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);
+
+// Transform _id to id and remove __v
+ProjectSchema.set('toJSON', {
+  transform: function(doc: any, ret: any) {
+    ret.id = ret._id;
+    delete ret._id;
+    delete ret.__v;
+    return ret;
+  }
+});
+
+ProjectSchema.set('toObject', {
+  transform: function(doc: any, ret: any) {
+    ret.id = ret._id;
+    delete ret._id;
+    delete ret.__v;
+    return ret;
+  }
+});

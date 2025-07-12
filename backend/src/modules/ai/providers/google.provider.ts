@@ -14,9 +14,16 @@ export class GoogleProvider {
     }
   }
 
-  async analyzeImages(currentImageBuffer: Buffer, targetImageBuffer: Buffer, framework?: string) {
+  async analyzeImages(currentImageBuffer: Buffer, targetImageBuffer: Buffer, framework?: string, model?: string, apiKey?: string) {
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+      // Use provided API key or fallback to environment variable
+      const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : this.genAI;
+      
+      if (!genAI) {
+        throw new Error('Google API key not provided');
+      }
+
+      const geminiModel = genAI.getGenerativeModel({ model: model || 'gemini-1.5-pro' });
 
       const prompt = `You are a UI/UX expert. Compare these two images: the first is the current UI, the second is the target design.
 
@@ -65,7 +72,7 @@ Return JSON format:
         }
       };
 
-      const result = await model.generateContent([prompt, currentImagePart, targetImagePart]);
+      const result = await geminiModel.generateContent([prompt, currentImagePart, targetImagePart]);
       const response = await result.response;
       const text = response.text();
 
@@ -108,7 +115,7 @@ Return JSON format:
 
   async detectTechStack(codeFiles: { filename: string; content: string }[]) {
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       const codeAnalysis = codeFiles.map(file => 
         `File: ${file.filename}\n\`\`\`\n${file.content.substring(0, 2000)}\n\`\`\``
@@ -158,7 +165,7 @@ Return JSON format:
     differences?: any[];
   }) {
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
       const { framework, description, targetElement, differences } = options;
 
       const prompt = `Generate ${framework} code for: ${description}

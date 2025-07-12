@@ -14,7 +14,7 @@ export class AnthropicProvider {
     }
   }
 
-  async analyzeImages(currentImageBuffer: Buffer, targetImageBuffer: Buffer, framework?: string) {
+  async analyzeImages(currentImageBuffer: Buffer, targetImageBuffer: Buffer, framework?: string, model?: string, apiKey?: string) {
     try {
       const currentImageBase64 = currentImageBuffer.toString('base64');
       const targetImageBase64 = targetImageBuffer.toString('base64');

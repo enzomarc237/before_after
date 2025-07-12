@@ -27,21 +27,27 @@ export class AiService {
           result = await this.openaiProvider.analyzeImages(
             currentImage.buffer,
             targetImage.buffer,
-            analyzeDto.framework
+            analyzeDto.framework,
+            analyzeDto.aiModel,
+            analyzeDto.apiKey
           );
           break;
         case 'google':
           result = await this.googleProvider.analyzeImages(
             currentImage.buffer,
             targetImage.buffer,
-            analyzeDto.framework
+            analyzeDto.framework,
+            analyzeDto.aiModel,
+            analyzeDto.apiKey
           );
           break;
         case 'anthropic':
           result = await this.anthropicProvider.analyzeImages(
             currentImage.buffer,
             targetImage.buffer,
-            analyzeDto.framework
+            analyzeDto.framework,
+            analyzeDto.aiModel,
+            analyzeDto.apiKey
           );
           break;
         default:

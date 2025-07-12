@@ -14,17 +14,20 @@ export class OpenAIProvider {
     }
   }
 
-  async analyzeImages(currentImageBuffer: Buffer, targetImageBuffer: Buffer, framework?: string) {
-    if (!this.openai) {
-      throw new Error('OpenAI API key not configured');
+  async analyzeImages(currentImageBuffer: Buffer, targetImageBuffer: Buffer, framework?: string, model?: string, apiKey?: string) {
+    // Use provided API key or fallback to environment variable
+    const openaiClient = apiKey ? new OpenAI({ apiKey }) : this.openai;
+    
+    if (!openaiClient) {
+      throw new Error('OpenAI API key not provided');
     }
     
     try {
       const currentImageBase64 = currentImageBuffer.toString('base64');
       const targetImageBase64 = targetImageBuffer.toString('base64');
 
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+      const response = await openaiClient.chat.completions.create({
+        model: model || 'gpt-4o',
         messages: [
           {
             role: 'user',
@@ -134,8 +137,14 @@ export class OpenAIProvider {
     }
   }
 
-  async detectTechStack(codeFiles: { filename: string; content: string }[]) {
+  async detectTechStack(codeFiles: { filename: string; content: string }[], model?: string, apiKey?: string) {
     try {
+      // Use provided API key or fallback to environment variable
+      const openaiClient = apiKey ? new OpenAI({ apiKey }) : this.openai;
+      
+      if (!openaiClient) {
+        throw new Error('OpenAI API key not provided');
+      }
       const codeAnalysis = codeFiles.map(file => 
         `File: ${file.filename}\n\`\`\`\n${file.content.substring(0, 2000)}\n\`\`\``
       ).join('\n\n');
@@ -193,8 +202,14 @@ export class OpenAIProvider {
     description: string;
     targetElement?: string;
     differences?: any[];
-  }) {
+  }, model?: string, apiKey?: string) {
     try {
+      // Use provided API key or fallback to environment variable
+      const openaiClient = apiKey ? new OpenAI({ apiKey }) : this.openai;
+      
+      if (!openaiClient) {
+        throw new Error('OpenAI API key not provided');
+      }
       const { framework, description, targetElement, differences } = options;
 
       const prompt = `Generate ${framework} code to implement the following changes:
@@ -224,8 +239,8 @@ Return as JSON:
   "notes": "implementation guidance"
 }`;
 
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o',
+      const response = await openaiClient.chat.completions.create({
+        model: model || 'gpt-4o',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 2000,
         temperature: 0.1
