@@ -26,10 +26,11 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('BeforeAfterUI API')
     .setDescription('API for AI-powered UI transformation analysis')
-    .setVersion('1.0')
+    .setVersion('0.1.0')
     .addTag('projects')
     .addTag('ai')
-    .addTag('images')
+    .addTag('uploads')
+    .addTag('health')
     .build();
   
   const document = SwaggerModule.createDocument(app, config);
@@ -38,8 +39,12 @@ async function bootstrap() {
   const port = process.env.PORT || 3001;
   await app.listen(port);
   
-  console.log(`🚀 Backend server running on http://localhost:${port}`);
-  console.log(`📚 API Documentation available at http://localhost:${port}/api/docs`);
+  console.log(`Backend server running on http://localhost:${port}`);
+  console.log(`API Documentation available at http://localhost:${port}/api/docs`);
+  console.log(`Health check: http://localhost:${port}/api/health`);
 }
 
-bootstrap();
+bootstrap().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});

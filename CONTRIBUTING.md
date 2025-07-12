@@ -96,7 +96,7 @@ chore: maintenance tasks
 - [ ] Advanced UI components
 - [ ] Performance optimizations
 - [ ] Additional AI providers
-- [ ] Mobile app (React Native)
+- [ ] Mobile app (Flutter)
 - [ ] Plugin system
 
 ### Low Priority
