@@ -1,51 +1,54 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
-
-// Temporary in-memory storage (will be replaced with database)
-let projects: any[] = [];
-let nextId = 1;
+import { Project, ProjectDocument } from '../../schemas/project.schema';
 
 @Injectable()
 export class ProjectsService {
+  constructor(
+    @InjectModel(Project.name) private projectModel: Model<ProjectDocument>
+  ) {}
   async findAll(query: any) {
-    let filteredProjects = [...projects];
+    const page = parseInt(query.page) || 1;
+    const limit = parseInt(query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    // Apply filters
+    // Build filter
+    const filter: any = {};
     if (query.status) {
-      filteredProjects = filteredProjects.filter(p => p.status === query.status);
+      filter.status = query.status;
     }
-
     if (query.search) {
-      const searchTerm = query.search.toLowerCase();
-      filteredProjects = filteredProjects.filter(p => 
-        p.name.toLowerCase().includes(searchTerm) ||
-        p.description?.toLowerCase().includes(searchTerm)
-      );
+      filter.$or = [
+        { name: { $regex: query.search, $options: 'i' } },
+        { description: { $regex: query.search, $options: 'i' } }
+      ];
     }
 
-    // Apply sorting
+    // Build sort
+    const sort: any = {};
     if (query.sortBy) {
-      filteredProjects.sort((a, b) => {
-        const aValue = a[query.sortBy];
-        const bValue = b[query.sortBy];
-        
-        if (query.sortOrder === 'desc') {
-          return bValue > aValue ? 1 : -1;
-        }
-        return aValue > bValue ? 1 : -1;
-      });
+      sort[query.sortBy] = query.sortOrder === 'desc' ? -1 : 1;
+    } else {
+      sort.updatedAt = -1; // Default sort by updated date
     }
+
+    const [projects, total] = await Promise.all([
+      this.projectModel.find(filter).sort(sort).skip(skip).limit(limit).exec(),
+      this.projectModel.countDocuments(filter).exec()
+    ]);
 
     return {
-      data: filteredProjects,
-      total: filteredProjects.length,
-      page: parseInt(query.page) || 1,
-      limit: parseInt(query.limit) || 10,
+      data: projects,
+      total,
+      page,
+      limit,
     };
   }
 
   async findOne(id: string) {
-    const project = projects.find(p => p.id === id);
+    const project = await this.projectModel.findById(id).exec();
     if (!project) {
       throw new NotFoundException(`Project with ID ${id} not found`);
     }
@@ -53,41 +56,29 @@ export class ProjectsService {
   }
 
   async create(createProjectDto: CreateProjectDto) {
-    const newProject = {
-      id: nextId.toString(),
-      ...createProjectDto,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    nextId++;
-    projects.push(newProject);
-    
-    return newProject;
+    const createdProject = new this.projectModel(createProjectDto);
+    return createdProject.save();
   }
 
   async update(id: string, updateProjectDto: UpdateProjectDto) {
-    const projectIndex = projects.findIndex(p => p.id === id);
-    if (projectIndex === -1) {
+    const updatedProject = await this.projectModel
+      .findByIdAndUpdate(id, updateProjectDto, { new: true })
+      .exec();
+    
+    if (!updatedProject) {
       throw new NotFoundException(`Project with ID ${id} not found`);
     }
 
-    projects[projectIndex] = {
-      ...projects[projectIndex],
-      ...updateProjectDto,
-      updatedAt: new Date(),
-    };
-
-    return projects[projectIndex];
+    return updatedProject;
   }
 
   async remove(id: string) {
-    const projectIndex = projects.findIndex(p => p.id === id);
-    if (projectIndex === -1) {
+    const deletedProject = await this.projectModel.findByIdAndDelete(id).exec();
+    
+    if (!deletedProject) {
       throw new NotFoundException(`Project with ID ${id} not found`);
     }
 
-    const deletedProject = projects.splice(projectIndex, 1)[0];
     return { message: 'Project deleted successfully', project: deletedProject };
   }
 }

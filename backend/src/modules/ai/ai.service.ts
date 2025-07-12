@@ -1,106 +1,198 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { AnalyzeImagesDto } from './dto/ai.dto';
+import { OpenAIProvider } from './providers/openai.provider';
+import { GoogleProvider } from './providers/google.provider';
+import { AnthropicProvider } from './providers/anthropic.provider';
 
 @Injectable()
 export class AiService {
+  constructor(
+    private readonly openaiProvider: OpenAIProvider,
+    private readonly googleProvider: GoogleProvider,
+    private readonly anthropicProvider: AnthropicProvider,
+  ) {}
   async analyzeImages(files: Express.Multer.File[], analyzeDto: AnalyzeImagesDto) {
     if (!files || files.length < 2) {
       throw new BadRequestException('Two images are required for comparison');
     }
 
-    // Mock AI analysis for now (will be replaced with real AI calls)
-    const mockAnalysis = {
-      differences: [
-        {
-          id: '1',
-          type: 'color',
-          severity: 'high',
-          description: 'Primary button color differs from target design',
-          coordinates: { x: 100, y: 200, width: 120, height: 40 },
-          currentValue: '#3b82f6',
-          targetValue: '#10b981',
-        },
-        {
-          id: '2',
-          type: 'spacing',
-          severity: 'medium',
-          description: 'Margin between elements is larger than target',
-          coordinates: { x: 50, y: 150, width: 200, height: 20 },
-          currentValue: '24px',
-          targetValue: '16px',
-        },
-      ],
-      suggestions: [
-        {
-          id: '1',
-          type: 'css',
-          description: 'Update button color to match target design',
-          code: '.primary-button {\n  background-color: #10b981;\n}',
-          framework: analyzeDto.framework || 'css',
-          priority: 'high',
-          estimatedEffort: 'quick',
-        },
-      ],
-      confidence: 0.87,
-      processedAt: new Date(),
-    };
+    const [currentImage, targetImage] = files;
+    const provider = analyzeDto.aiProvider || 'openai';
 
-    return mockAnalysis;
+    try {
+      let result;
+      
+      switch (provider) {
+        case 'openai':
+          result = await this.openaiProvider.analyzeImages(
+            currentImage.buffer,
+            targetImage.buffer,
+            analyzeDto.framework
+          );
+          break;
+        case 'google':
+          result = await this.googleProvider.analyzeImages(
+            currentImage.buffer,
+            targetImage.buffer,
+            analyzeDto.framework
+          );
+          break;
+        case 'anthropic':
+          result = await this.anthropicProvider.analyzeImages(
+            currentImage.buffer,
+            targetImage.buffer,
+            analyzeDto.framework
+          );
+          break;
+        default:
+          throw new BadRequestException(`Unsupported AI provider: ${provider}`);
+      }
+
+      return {
+        ...result,
+        provider,
+        model: analyzeDto.aiModel,
+        processedAt: new Date(),
+      };
+
+    } catch (error) {
+      console.error('AI analysis error:', error);
+      
+      // Fallback to mock response if AI fails
+      return {
+        differences: [
+          {
+            id: '1',
+            type: 'error',
+            severity: 'high',
+            description: `AI analysis failed: ${error.message}. Using fallback analysis.`,
+            coordinates: { x: 0, y: 0, width: 100, height: 100 },
+            currentValue: 'Unable to analyze',
+            targetValue: 'Unable to analyze',
+          }
+        ],
+        suggestions: [
+          {
+            id: '1',
+            type: 'manual',
+            description: 'Please review images manually and apply changes',
+            code: '/* AI analysis unavailable - manual review required */',
+            framework: analyzeDto.framework || 'css',
+            priority: 'high',
+            estimatedEffort: 'manual',
+          }
+        ],
+        confidence: 0.0,
+        provider,
+        error: error.message,
+        processedAt: new Date(),
+      };
+    }
   }
 
-  async detectTechStack(files: Express.Multer.File[]) {
+  async detectTechStack(files: Express.Multer.File[], provider: string = 'openai') {
     if (!files || files.length === 0) {
       throw new BadRequestException('At least one code file is required');
     }
 
-    // Mock tech stack detection (will be replaced with real AI analysis)
-    const mockDetection = {
-      framework: 'react',
-      language: 'typescript',
-      platform: 'web',
-      confidence: 0.92,
-      autoDetected: true,
-      detectedFiles: files.map(file => ({
-        filename: file.originalname,
-        type: this.getFileType(file.originalname),
-        confidence: 0.9,
-      })),
-    };
+    const codeFiles = files.map(file => ({
+      filename: file.originalname,
+      content: file.buffer.toString('utf-8')
+    }));
 
-    return mockDetection;
+    try {
+      let result;
+      
+      switch (provider) {
+        case 'openai':
+          result = await this.openaiProvider.detectTechStack(codeFiles);
+          break;
+        case 'google':
+          result = await this.googleProvider.detectTechStack(codeFiles);
+          break;
+        case 'anthropic':
+          result = await this.anthropicProvider.detectTechStack(codeFiles);
+          break;
+        default:
+          throw new BadRequestException(`Unsupported AI provider: ${provider}`);
+      }
+
+      return {
+        ...result,
+        provider,
+        processedAt: new Date(),
+      };
+
+    } catch (error) {
+      console.error('Tech stack detection error:', error);
+      
+      // Fallback to basic file type detection
+      return {
+        framework: 'unknown',
+        language: 'unknown',
+        platform: 'web',
+        confidence: 0.1,
+        autoDetected: false,
+        detectedFiles: files.map(file => ({
+          filename: file.originalname,
+          type: this.getFileType(file.originalname),
+          confidence: 0.5,
+        })),
+        provider,
+        error: error.message,
+        processedAt: new Date(),
+      };
+    }
   }
 
   async generateCode(generateCodeDto: any) {
-    // Mock code generation (will be replaced with real AI calls)
-    const mockCode = {
-      framework: generateCodeDto.framework,
-      suggestions: [
-        {
-          file: 'components/Button.tsx',
-          code: `import React from 'react';
+    const provider = generateCodeDto.aiProvider || 'openai';
 
-interface ButtonProps {
-  variant?: 'primary' | 'secondary';
-  children: React.ReactNode;
-}
+    try {
+      let result;
+      
+      switch (provider) {
+        case 'openai':
+          result = await this.openaiProvider.generateCode(generateCodeDto);
+          break;
+        case 'google':
+          result = await this.googleProvider.generateCode(generateCodeDto);
+          break;
+        case 'anthropic':
+          result = await this.anthropicProvider.generateCode(generateCodeDto);
+          break;
+        default:
+          throw new BadRequestException(`Unsupported AI provider: ${provider}`);
+      }
 
-export const Button: React.FC<ButtonProps> = ({ variant = 'primary', children }) => {
-  return (
-    <button 
-      className={\`btn btn-\${variant}\`}
-      style={{ backgroundColor: variant === 'primary' ? '#10b981' : '#6b7280' }}
-    >
-      {children}
-    </button>
-  );
-};`,
-          description: 'Updated button component with new color scheme',
-        },
-      ],
-      generatedAt: new Date(),
-    };
+      return {
+        ...result,
+        provider,
+        generatedAt: new Date(),
+      };
 
-    return mockCode;
+    } catch (error) {
+      console.error('Code generation error:', error);
+      
+      // Fallback to basic code template
+      return {
+        framework: generateCodeDto.framework,
+        suggestions: [
+          {
+            file: 'components/Component.tsx',
+            code: `// AI code generation failed: ${error.message}
+// Please implement manually based on requirements`,
+            description: 'Manual implementation required',
+            type: 'error'
+          }
+        ],
+        dependencies: [],
+        notes: 'AI code generation unavailable - manual implementation required',
+        provider,
+        error: error.message,
+        generatedAt: new Date(),
+      };
+    }
   }
 
   private getFileType(filename: string): string {
