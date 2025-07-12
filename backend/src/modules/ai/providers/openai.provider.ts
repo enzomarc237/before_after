@@ -149,7 +149,7 @@ export class OpenAIProvider {
         `File: ${file.filename}\n\`\`\`\n${file.content.substring(0, 2000)}\n\`\`\``
       ).join('\n\n');
 
-      const response = await this.openai.chat.completions.create({
+      const response = await openaiClient.chat.completions.create({
         model: 'gpt-4o',
         messages: [
           {

@@ -113,9 +113,16 @@ Return JSON format:
     }
   }
 
-  async detectTechStack(codeFiles: { filename: string; content: string }[]) {
+  async detectTechStack(codeFiles: { filename: string; content: string }[], model?: string, apiKey?: string) {
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      // Use provided API key or fallback to environment variable
+      const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : this.genAI;
+      
+      if (!genAI) {
+        throw new Error('Google API key not provided');
+      }
+      
+      const geminiModel = genAI.getGenerativeModel({ model: model || 'gemini-2.0-flash' });
 
       const codeAnalysis = codeFiles.map(file => 
         `File: ${file.filename}\n\`\`\`\n${file.content.substring(0, 2000)}\n\`\`\``
@@ -141,7 +148,7 @@ Return JSON format:
       Code files:
       ${codeAnalysis}`;
 
-      const result = await model.generateContent(prompt);
+      const result = await geminiModel.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
 
@@ -163,9 +170,16 @@ Return JSON format:
     description: string;
     targetElement?: string;
     differences?: any[];
-  }) {
+  }, model?: string, apiKey?: string) {
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      // Use provided API key or fallback to environment variable
+      const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : this.genAI;
+      
+      if (!genAI) {
+        throw new Error('Google API key not provided');
+      }
+      
+      const geminiModel = genAI.getGenerativeModel({ model: model || 'gemini-2.0-flash' });
       const { framework, description, targetElement, differences } = options;
 
       const prompt = `Generate ${framework} code for: ${description}
@@ -187,7 +201,7 @@ Return JSON format:
         "notes": "implementation guidance"
       }`;
 
-      const result = await model.generateContent(prompt);
+      const result = await geminiModel.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
 

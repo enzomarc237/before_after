@@ -16,11 +16,18 @@ export class AnthropicProvider {
 
   async analyzeImages(currentImageBuffer: Buffer, targetImageBuffer: Buffer, framework?: string, model?: string, apiKey?: string) {
     try {
+      // Use provided API key or fallback to environment variable
+      const anthropicClient = apiKey ? new Anthropic({ apiKey }) : this.anthropic;
+      
+      if (!anthropicClient) {
+        throw new Error('Anthropic API key not provided');
+      }
+      
       const currentImageBase64 = currentImageBuffer.toString('base64');
       const targetImageBase64 = targetImageBuffer.toString('base64');
 
-      const message = await this.anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+      const message = await anthropicClient.messages.create({
+        model: model || 'claude-3-5-sonnet-20241022',
         max_tokens: 4000,
         messages: [
           {
@@ -131,14 +138,21 @@ Return the response as a JSON object with this structure:
     }
   }
 
-  async detectTechStack(codeFiles: { filename: string; content: string }[]) {
+  async detectTechStack(codeFiles: { filename: string; content: string }[], model?: string, apiKey?: string) {
     try {
       const codeAnalysis = codeFiles.map(file => 
         `File: ${file.filename}\n\`\`\`\n${file.content.substring(0, 2000)}\n\`\`\``
       ).join('\n\n');
 
-      const message = await this.anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+      // Use provided API key or fallback to environment variable
+      const anthropicClient = apiKey ? new Anthropic({ apiKey }) : this.anthropic;
+      
+      if (!anthropicClient) {
+        throw new Error('Anthropic API key not provided');
+      }
+
+      const message = await anthropicClient.messages.create({
+        model: model || 'claude-3-5-sonnet-20241022',
         max_tokens: 1000,
         messages: [
           {
@@ -189,7 +203,7 @@ Return the response as a JSON object with this structure:
     description: string;
     targetElement?: string;
     differences?: any[];
-  }) {
+  }, model?: string, apiKey?: string) {
     try {
       const { framework, description, targetElement, differences } = options;
 
@@ -220,8 +234,15 @@ Return as JSON:
   "notes": "implementation guidance"
 }`;
 
-      const message = await this.anthropic.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
+      // Use provided API key or fallback to environment variable
+      const anthropicClient = apiKey ? new Anthropic({ apiKey }) : this.anthropic;
+      
+      if (!anthropicClient) {
+        throw new Error('Anthropic API key not provided');
+      }
+
+      const message = await anthropicClient.messages.create({
+        model: model || 'claude-3-5-sonnet-20241022',
         max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }]
       });
